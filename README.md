@@ -1,186 +1,109 @@
-# Hive Auth Tests
+# HiveAuth React Native Demo (Expo)
 
-A React Native + Expo application demonstrating HiveAuth login flow with deep linking, featuring secure authentication and token persistence.
+A minimal Expo app that demonstrates HiveAuth login and signing from React Native using the official HAS WebSocket protocol and Hive Keychain Mobile.
 
-## 🎯 HiveAuth Demo Features
+## ✨ What it does
 
-- ✅ **UUID-based login requests** - Generate unique authentication requests
-- ✅ **HiveAuth server integration** - Connect to HiveAuth API endpoints
-- ✅ **Deep link handling** - Process callbacks from Hive Keychain Mobile
-- ✅ **Keychain Mobile integration** - Launch Keychain via deep links
-- ✅ **AsyncStorage token persistence** - Securely store authentication tokens
-- ✅ **Testing simulation** - Built-in success/error simulation for development
-- ✅ **TypeScript support** - Full type safety throughout the application
+- WebSocket to HAS (HiveAuth Service) with AES-encrypted payloads
+- Deep link generation: `has://auth_req/<base64(JSON)>`
+   - JSON contains `{ account, uuid, key, host }`
+   - `host` is the full wss URL (e.g., `wss://has.hiveauth.com`)
+- Same-device flow: re-attach to pending requests when returning from Keychain
+- Server toggle: switch between `hive-auth.arcange.eu` and `has.hiveauth.com`
+- Custom JSON signing via `sign_req` (posting key)
+- AsyncStorage token persistence
 
-## 🔄 HiveAuth Flow
+## 🔌 Protocol (aligned with hive-auth-html)
 
-1. **Create Login Request**: Generate UUID and send to HiveAuth server
-2. **Receive Challenge**: Get authentication challenge from server
-3. **Open Keychain**: Launch Hive Keychain Mobile via deep link
-4. **User Authentication**: User signs in Keychain app
-5. **Receive Callback**: App receives callback with session token
-6. **Store Token**: Persist token in AsyncStorage for future use
+1. Connect to HAS via WebSocket.
+2. Send `auth_req` with AES-encrypted `{ app }` using an `auth_key` (uuidv4).
+3. On `auth_wait`, build deep link:
+    - `has://auth_req/` + base64(JSON.stringify({ account, uuid, key, host }))
+4. Open Keychain, approve, then return to the app.
+5. Receive `auth_ack`, decrypt to get `{ expire, token? }` and keep `auth_key` for signing.
+6. For signing, send `sign_req` with AES-encrypted `{ key_type, ops, broadcast, nonce }`.
 
-## 🛠 Tech Stack
+Refs: https://github.com/hiveauth/hive-auth-html
 
-- **React Native** 0.76.0
-- **Expo** ~52.0.0
-- **TypeScript**
-- **React Navigation** - For screen navigation
-- **Expo Linking** - Deep link handling
-- **AsyncStorage** - Token persistence
-- **UUID** - Unique request generation
+## 🛠 Tech stack
 
-## 📁 Project Structure
+- Expo SDK 53, React Native 0.79.x, React 19
+- TypeScript
+- crypto-js for AES
+- react-native-get-random-values polyfill
+- @react-native-async-storage/async-storage
+- expo-linking
+
+## 📁 Structure
 
 ```
 ├── app/
-│   ├── index.tsx              # Main navigation screen
-│   └── hiveauth-demo.tsx      # HiveAuth login demo
+│   ├── index.tsx              # Menu → HiveAuth demo
+│   └── hiveauth-demo.tsx      # UI: login, deep link, custom_json
 ├── lib/
-│   ├── hiveauth-service.ts    # HiveAuth API integration
-│   ├── hive-service.ts        # Hive blockchain service
-│   └── auth-service.ts        # Legacy authentication service
-├── assets/                    # Static assets
-├── .github/
-│   └── copilot-instructions.md
+│   ├── hiveauth-service.ts    # HAS client: auth & sign_req
+│   ├── hive-service.ts        # Placeholder
+│   └── auth-service.ts        # Placeholder
+├── .github/copilot-instructions.md
+├── index.js                   # getRandomValues polyfill import
+├── app.json                   # Expo config
 ├── package.json
-├── app.json                   # Expo configuration (deep link scheme: myapp://)
-├── tsconfig.json              # TypeScript configuration
+├── tsconfig.json
 └── README.md
 ```
 
-## 🚀 Quick Start
+## 🚀 Run it
 
-### Prerequisites
+Prereqs: Node 18+, npm, Expo Go on your phone.
 
-- Node.js (v18 or higher)
-- npm or yarn
-- Expo CLI (`npm install -g @expo/cli`)
-- Expo Go app on your mobile device (for testing)
+1) Install deps
+```bash
+npm install
+```
 
-### Installation
+2) Start
+```bash
+npm start
+```
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+3) Open on device with Expo Go (scan QR).
 
-### Running the Application
+## 📱 Use the demo
 
-1. Start the Expo development server:
-   ```bash
-   npm start
-   ```
+1) Pick server (top of screen): arcange.eu or hiveauth.com
+2) Enter your Hive username → tap “Login with HiveAuth”
+3) Deep link appears → tap “Open in Keychain”
+4) Approve in Keychain → return to this app
+5) You should see “Authenticated”
+6) Tap “Post custom_json” → approve in Keychain → see success
 
-2. Open the app:
-   - **Mobile**: Scan the QR code with Expo Go app
-   - **Web**: Press `w` in the terminal or visit `http://localhost:8081`
-   - **Android Emulator**: Press `a` in the terminal
-   - **iOS Simulator**: Press `i` in the terminal
+Buttons you’ll see
+- Open in Keychain: launches Hive Keychain Mobile with the deep link
+- Share Link: shares the deep link value
+- Cancel Pending: clears a stuck/expired request so you can retry
 
-## 📱 Using the HiveAuth Demo
+## 🧩 Custom JSON
 
-### Step 1: Launch Demo
-1. Open the app and tap "HiveAuth Login Demo"
-2. You'll see the main HiveAuth interface
-
-### Step 2: Initiate Login
-1. Tap "Login with HiveAuth" 
-2. The app creates a login request with UUID for user "demo-user"
-3. Request is sent to HiveAuth server (https://hiveauth.herokuapp.com/api/auth/request)
-
-### Step 3: Deep Link Handling
-1. App generates Keychain deep link: `keychain://hiveauth/?uuid=<uuid>&challenge=<challenge>`
-2. On mobile: Automatically opens Hive Keychain Mobile
-3. On web/simulator: Shows deep link URL for inspection
-
-### Step 4: Authentication Callback
-1. Keychain sends callback: `myapp://hiveauth/callback?uuid=<uuid>&status=ok&token=<token>`
-2. App intercepts the deep link and processes the response
-3. Token is stored in AsyncStorage
-
-### Step 5: Testing Simulation
-- **Simulate Success**: Creates mock successful authentication
-- **Simulate Error**: Creates mock failed authentication
-- Perfect for development and testing
-
-## ⚙️ Configuration
-
-### Deep Link Scheme
-The app is configured with `myapp://` scheme in `app.json`:
-
+We send a posting `custom_json` op with id `react_native_demo` and payload:
 ```json
-{
-  "expo": {
-    "scheme": "myapp"
-  }
-}
+{ "message": "I posted this with a react native app and hiveauth", "ts": 1735689600000 }
 ```
+The message is wrapped in a standard Hive op array and signed via `sign_req`.
 
-### HiveAuth Server
-Default server: `https://hiveauth.herokuapp.com/api`
+## 🔧 Troubleshooting
 
-You can modify the server URL in `lib/hiveauth-service.ts`:
+- Keychain flashes and returns: ensure deep link host matches the selected server.
+- Keychain waits forever: switch server to `hiveauth.com`, then retry.
+- “Another authentication in progress”: use “Cancel Pending,” then retry.
+- Same-device approval: after approving in Keychain, return to this app; it re-attaches automatically.
 
-```typescript
-const HIVEAUTH_API_BASE = 'https://your-hiveauth-server.com/api';
-```
+## 🔐 Notes
 
-## 🔧 Development Features
-
-### Logging
-- All authentication steps are logged to console
-- Deep link events are tracked
-- API responses are logged for debugging
-
-### Error Handling
-- Graceful fallback when HiveAuth server is unavailable
-- Mock challenge generation for offline testing
-- Clear error messages for failed authentication
-
-### Testing Tools
-- Built-in simulation buttons for success/error scenarios
-- Deep link URL display for manual testing
-- Request details inspection (UUID, challenge, etc.)
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## Todo
-
-- [ ] Implement real authentication UI
-- [ ] Add transaction signing capabilities
-- [ ] Create key generation/import functionality
-- [ ] Add more Hive operations (posting, voting, etc.)
-- [ ] Implement QR code scanning for key import
-- [ ] Add multi-account support
-- [ ] Create settings screen
-
-## Security Notes
-
-⚠️ **Important**: This is a development/testing application. For production use:
-
-- Implement proper key generation
-- Add biometric authentication
-- Use hardware security modules where possible
-- Validate all user inputs
-- Implement proper error handling
-- Use secure communication channels
+This is a demo. For production:
+- Validate inputs and handle edge cases
+- Respect HAS timeouts; reconnect/retry thoughtfully
+- Consider showing explicit attach/retry UI states
 
 ## License
 
-This project is for educational and testing purposes. Please ensure compliance with your local regulations when using blockchain technologies.
-
-## Support
-
-For questions about Hive blockchain development, visit:
-- [Hive Developer Portal](https://developers.hive.io/)
-- [Hive Community](https://hive.io/)
-- [dhive Documentation](https://gitlab.syncad.com/hive/dhive)
+MIT (demo purposes only)
