@@ -1,0 +1,32 @@
+# Node/Expo
+node_modules/
+.expo/
+.expo-shared/
+dist/
+build/
+web-build/
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# OS
+.DS_Store
+Thumbs.db
+# VS Code
+.vscode/
+# Env
+.env
+.env.*
+# Metro cache
+.expo-cache/
+.metro-cache/
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+# Android/iOS build artifacts
+android/
+ios/
+# Misc
+*.local
+node_modules
